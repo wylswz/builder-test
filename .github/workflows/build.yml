@@ -34,7 +34,7 @@ jobs:
         run: |
           # copy inputs.s3_context_path from cloudflare bucket to /tmp/context.tar
           aws s3 cp s3://${{ secrets.R2_BUCKET }}/${{ inputs.s3_context_path }} /tmp/context.tar \
-          --endpoint-url https://${{ secrets.R2_ENDPOINT }}
+          --endpoint-url ${{ secrets.R2_ENDPOINT }}
           
       - name: login to aks container registry
         uses: docker/login-action@v3
