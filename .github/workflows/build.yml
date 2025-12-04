@@ -14,10 +14,10 @@ on:
       s3_context_path:
         description: "s3 context path"
         type: string
-      ecr_image_name:
+      image_name:
         description: "target image name"
         type: string
-      ecr_image_with_tag:
+      image_with_tag:
         description: "target image name with tag"
         type: string
 jobs:
