@@ -1,0 +1,56 @@
+name: Compile-And-Build
+
+run-name: trigger-${{ inputs.name }}
+
+on: 
+  repository_dispatch:
+    types:
+      - trigger-compile
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "workflow name"
+        type: string
+      s3_context_path:
+        description: "s3 context path"
+        type: string
+      ecr_image_name:
+        description: "target image name"
+        type: string
+      ecr_image_with_tag:
+        description: "target image name with tag"
+        type: string
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: trigger-${{ inputs.name }}
+
+    steps:
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Sync Docker Context
+        run: |
+          aws s3 cp s3://dify-plugin-beta/${{ inputs.s3_context_path }} /tmp/context.tar
+      
+      - name: Compile Plugin
+        run: |
+          docker build -t dify-plugin - < /tmp/context.tar
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      - name: Create AWS ECR repository
+        uses: uspacy/aws-ecr-action@v1
+        with:
+          repositoryName: ${{ inputs.ecr_image_name }}
+
+      - name: Push to ECR
+        run: |
+          docker tag dify-plugin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ inputs.ecr_image_with_tag }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ inputs.ecr_image_with_tag }}
