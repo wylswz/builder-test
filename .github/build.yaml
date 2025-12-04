@@ -26,31 +26,28 @@ jobs:
     name: trigger-${{ inputs.name }}
 
     steps:
-      - name: Setup AWS Credentials
+      - name: Setup AWS CLI
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
+          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws-region: auto
       - name: Sync Docker Context
         run: |
-          aws s3 cp s3://dify-plugin-beta/${{ inputs.s3_context_path }} /tmp/context.tar
+          # copy inputs.s3_context_path from cloudflare bucket to /tmp/context.tar
+          aws s3 cp s3://${{ secrets.R2_BUCKET }}/${{ inputs.s3_context_path }} /tmp/context.tar \
+          --endpoint-url https://${{ secrets.R2_ENDPOINT }}
+          
+      - name: login to aks container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.AKS_REGISTRY_SERVER }}
+          username: ${{ secrets.AKS_REGISTRY_USERNAME }}
+          password: ${{ secrets.AKS_REGISTRY_PASSWORD }}
       
       - name: Compile Plugin
         run: |
           docker build -t dify-plugin - < /tmp/context.tar
+          docker tag dify-plugin ${{ secrets.AKS_REGISTRY_SERVER }}/${{ secrets.AKS_REGISTRY_REPO }}/${{ inputs.ecr_image_with_tag }}
+          docker push ${{ secrets.AKS_REGISTRY_SERVER }}/${{ secrets.AKS_REGISTRY_REPO }}/${{ inputs.ecr_image_with_tag }}
 
-      - name: Login to ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-      - name: Create AWS ECR repository
-        uses: uspacy/aws-ecr-action@v1
-        with:
-          repositoryName: ${{ inputs.ecr_image_name }}
-
-      - name: Push to ECR
-        run: |
-          docker tag dify-plugin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ inputs.ecr_image_with_tag }}
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ inputs.ecr_image_with_tag }}
