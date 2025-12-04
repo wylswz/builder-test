@@ -33,7 +33,7 @@ jobs:
       - name: Sync Docker Context
         run: |
           # copy inputs.s3_context_path from cloudflare bucket to /tmp/context.tar
-          aws s3 cp s3://${{ secrets.R2_BUCKET }}/${{ inputs.s3_context_path }} /tmp/context.tar \
+          aws s3 cp s3://${{ inputs.s3_context_path }} /tmp/context.tar \
           --endpoint-url ${{ secrets.R2_ENDPOINT }}
           
       - name: login to aks container registry
