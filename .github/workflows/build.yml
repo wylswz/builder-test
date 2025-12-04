@@ -46,6 +46,6 @@ jobs:
       - name: Compile Plugin
         run: |
           docker build -t dify-plugin - < /tmp/context.tar
-          docker tag dify-plugin ${{ secrets.AKS_REGISTRY_SERVER }}/${{ secrets.AKS_REGISTRY_REPO }}/${{ inputs.image_with_tag }}
-          docker push ${{ secrets.AKS_REGISTRY_SERVER }}/${{ secrets.AKS_REGISTRY_REPO }}/${{ inputs.image_with_tag }}
+          docker tag dify-plugin ${{ inputs.image_with_tag }}
+          docker push ${{ inputs.image_with_tag }}
 
